@@ -86,8 +86,16 @@ const startServer = () => {
 
 // [BEGINNER NOTE] Database Connection
 // First connect to MongoDB, THEN start the server.
+const MONGO_URI = process.env.MONGODB_URI;
+
+if (!MONGO_URI) {
+  console.error("❌ ERROR: MONGODB_URI is not defined in environment variables.");
+  console.error("👉 Please add MONGODB_URI to your Render Environment settings.");
+  process.exit(1);
+}
+
 mongoose
-  .connect(process.env.MONGODB_URI)
+  .connect(MONGO_URI)
   .then(() => {
     console.log("✅ MongoDB connected");
     startServer();
