@@ -3,8 +3,7 @@
   "private": true,
   "scripts": {
     "start": "npm start --prefix backend",
-    "build": "npm install --prefix backend",
-    "postinstall": "npm install --prefix backend"
+    "build": "npm install --prefix backend && npm install --prefix frontend && npm run build --prefix frontend"
   },
   "engines": {
     "node": ">=18.0.0"
