@@ -1,0 +1,97 @@
+import express from "express";
+import mongoose from "mongoose";
+import cors from "cors";
+import dotenv from "dotenv";
+import { createServer } from "http";
+import { Server } from "socket.io";
+import authRoutes from "./routes/auth.js";
+import taskRoutes from "./routes/tasks.js";
+import userRoutes from "./routes/users.js";
+
+// [BEGINNER NOTE]
+// This is the "Brain" of your backend.
+// It sets up the server, connects to the database, and defines where requests go.
+
+dotenv.config(); // Loads secret keys from .env file (like database password)
+
+const app = express(); // Create the server application
+const httpServer = createServer(app); // Wrap express in HTTP server for Socket.io
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:5174",
+  process.env.CLIENT_ORIGIN,
+].filter(Boolean);
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true,
+};
+
+const io = new Server(httpServer, {
+  cors: corsOptions,
+});
+
+// Store io instance in app so we can use it in controllers
+app.set("io", io);
+
+io.on("connection", (socket) => {
+  console.log("A user connected:", socket.id);
+
+  socket.on("disconnect", () => {
+    console.log("User disconnected:", socket.id);
+  });
+});
+
+// Middleware (Gatekeepers)
+app.use(cors(corsOptions));
+app.use(express.json()); // Allows server to understand JSON data sent by frontend
+
+// Simple check to see if server is alive
+app.get("/health", (req, res) => {
+  res.json({ status: "ok" });
+});
+
+// [BEGINNER NOTE] Routing
+// "If a request starts with /api/auth, send it to authRoutes file"
+app.use("/api/auth", authRoutes);
+app.use("/api/tasks", taskRoutes);
+app.use("/api/users", userRoutes);
+
+const port = process.env.PORT || 5002;
+
+// Function to start the server listening for requests
+const startServer = () => {
+  httpServer
+    .listen(port, () => {
+      console.log(`🚀 Server running on port ${port}`);
+    })
+    .on("error", (err) => {
+      if (err.code === "EADDRINUSE") {
+        console.error(
+          `❌ Cổng ${port} đã bị chiếm. Vui lòng sử dụng cổng khác.`,
+        );
+        process.exit(1);
+      } else {
+        console.error(err);
+        process.exit(1);
+      }
+    });
+};
+
+// [BEGINNER NOTE] Database Connection
+// First connect to MongoDB, THEN start the server.
+mongoose
+  .connect(process.env.MONGODB_URI)
+  .then(() => {
+    console.log("✅ MongoDB connected");
+    startServer();
+  })
+  .catch((error) => {
+    console.error("❌ MongoDB connection error:", error);
+  });
