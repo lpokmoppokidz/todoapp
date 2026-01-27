@@ -52,20 +52,32 @@ io.on("connection", (socket) => {
 app.use(cors(corsOptions));
 app.use(express.json()); // Allows server to understand JSON data sent by frontend
 
-// Simple check to see if server is alive
-app.get("/", (req, res) => {
-  res.send("🚀 Workspace API is running! Use /health to check status.");
-});
+import path from "path";
+import { fileURLToPath } from "url";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Simple check to see if server is alive
 app.get("/health", (req, res) => {
   res.json({ status: "ok" });
 });
+
+// [BEGINNER NOTE] Serving Frontend
+// This tells the backend to serve the "dist" folder (the built version of React)
+const distPath = path.join(__dirname, "../frontend/dist");
+app.use(express.static(distPath));
 
 // [BEGINNER NOTE] Routing
 // "If a request starts with /api/auth, send it to authRoutes file"
 app.use("/api/auth", authRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/users", userRoutes);
+
+// Handle React Router: For any route not handled by API, serve index.html
+app.get("*", (req, res) => {
+  res.sendFile(path.join(distPath, "index.html"));
+});
 
 const port = process.env.PORT || 5002;
 
