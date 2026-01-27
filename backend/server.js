@@ -63,10 +63,19 @@ app.get("/health", (req, res) => {
   res.json({ status: "ok" });
 });
 
+import fs from "fs";
+
 // [BEGINNER NOTE] Serving Frontend
 // This tells the backend to serve the "dist" folder (the built version of React)
 const distPath = path.join(__dirname, "../frontend/dist");
-app.use(express.static(distPath));
+
+if (fs.existsSync(distPath)) {
+  console.log("✅ Frontend build found at:", distPath);
+  app.use(express.static(distPath));
+} else {
+  console.warn("⚠️ WARNING: Frontend build NOT found at:", distPath);
+  console.warn("👉 Make sure you ran 'npm run build' in the frontend folder.");
+}
 
 // [BEGINNER NOTE] Routing
 // "If a request starts with /api/auth, send it to authRoutes file"
