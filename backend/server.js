@@ -20,13 +20,17 @@ const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
   process.env.CLIENT_ORIGIN,
+  process.env.RENDER_EXTERNAL_URL, // Auto-added by Render
 ].filter(Boolean);
 
 const corsOptions = {
   origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
+    // Allow if no origin (like mobile apps/curl) or if in allowed list
+    if (!origin || allowedOrigins.some(o => origin.startsWith(o)) || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
+      console.error("🚫 CORS Blocked Origin:", origin);
+      console.log("✅ Allowed List:", allowedOrigins);
       callback(new Error("Not allowed by CORS"));
     }
   },
