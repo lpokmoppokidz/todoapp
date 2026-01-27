@@ -1,0 +1,11 @@
+{
+  "name": "todoapp-root",
+  "private": true,
+  "scripts": {
+    "start": "npm start --prefix backend",
+    "build": "npm install --prefix backend"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
