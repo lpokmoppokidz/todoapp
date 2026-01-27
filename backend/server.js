@@ -53,6 +53,10 @@ app.use(cors(corsOptions));
 app.use(express.json()); // Allows server to understand JSON data sent by frontend
 
 // Simple check to see if server is alive
+app.get("/", (req, res) => {
+  res.send("🚀 Workspace API is running! Use /health to check status.");
+});
+
 app.get("/health", (req, res) => {
   res.json({ status: "ok" });
 });
