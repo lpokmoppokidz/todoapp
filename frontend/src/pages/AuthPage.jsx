@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 // import { Input } from "./ui/input";
 // import { cn } from "../lib/utils";
 
-const AuthView = ({ authState, error, onChange, onSubmit, onToggle }) => {
+const AuthPage = ({ authState, error, onChange, onSubmit, onToggle }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     onSubmit();
@@ -20,10 +20,7 @@ const AuthView = ({ authState, error, onChange, onSubmit, onToggle }) => {
         transition={{ duration: 0.5, ease: "easeOut" }}
         className="w-full max-w-md"
       >
-        {/* Card Container - formerly <Card> */}
         <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl border border-gray-100/50 p-8">
-          
-          {/* Header Section - formerly <CardHeader> */}
           <div className="text-center pb-8">
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
@@ -31,7 +28,6 @@ const AuthView = ({ authState, error, onChange, onSubmit, onToggle }) => {
               transition={{ delay: 0.2, duration: 0.3 }}
               className="w-12 h-12 bg-slate-900 rounded-xl mx-auto mb-6 shadow-lg flex items-center justify-center"
             >
-               {/* Simple Logo Icon */}
                <div className="w-6 h-6 border-2 border-white rounded-md"></div>
             </motion.div>
             
@@ -45,7 +41,6 @@ const AuthView = ({ authState, error, onChange, onSubmit, onToggle }) => {
             </p>
           </div>
 
-          {/* Content Section - formerly <CardContent> */}
           <form onSubmit={handleSubmit} className="space-y-5">
             <motion.div
               initial={{ opacity: 0 }}
@@ -113,7 +108,6 @@ const AuthView = ({ authState, error, onChange, onSubmit, onToggle }) => {
             </motion.div>
           </form>
 
-          {/* Footer Section - formerly <CardFooter> */}
           <div className="text-center mt-6 pt-6 border-t border-gray-100">
             <p className="text-sm text-slate-500">
               {authState.mode === "login"
@@ -134,4 +128,4 @@ const AuthView = ({ authState, error, onChange, onSubmit, onToggle }) => {
   );
 };
 
-export default AuthView;
+export default AuthPage;

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { useSocket } from "../context/SocketContext.jsx";
-import { getOnlineUsers } from "../api";
+import { useSocket } from "../socket/SocketContext.jsx";
+import { getOnlineUsers } from "../api/api";
 
 // [LEARNING NOTE] Custom Hooks
 // Hooks allow us to "reuse logic" across components.

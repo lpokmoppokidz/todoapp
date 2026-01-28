@@ -7,13 +7,13 @@ import {
   saveTask,
   unsaveTask,
   fetchFavorites
-} from "../api.js";
-import { useSocket } from "../context/SocketContext.jsx";
+} from "../api/api.js";
+import { useSocket } from "../socket/SocketContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
-import Layout from "./Layout.jsx";
-import Board from "./Board.jsx";
-import TaskModal from "./TaskModal.jsx";
-import FavoritesModal from "./FavoritesModal.jsx";
+import Layout from "../layouts/Layout.jsx";
+import Board from "../features/tasks/Board.jsx";
+import TaskModal from "../features/tasks/TaskModal.jsx";
+import FavoritesModal from "../features/tasks/FavoritesModal.jsx";
 
 const emptyTaskForm = {
   title: "",
