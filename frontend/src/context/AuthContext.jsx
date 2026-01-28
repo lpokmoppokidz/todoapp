@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { login as loginApi, logout as logoutApi, clearTokens } from "../api";
+import { login as loginApi, logout as logoutApi, clearTokens, refreshTokens } from "../api";
 
 const AuthContext = createContext(null);
 
@@ -16,20 +16,28 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Initialize auth state from localStorage
-    const savedUser = localStorage.getItem("user");
-    const token = localStorage.getItem("accessToken");
-    
-    if (savedUser && token) {
+    // [BEST PRACTICE] Silent Refresh on Start
+    // Instead of reading tokens from localStorage (unsafe),
+    // we ask the backend: "Do I have a valid session cookie?"
+    const initializeAuth = async () => {
       try {
-        setUser(JSON.parse(savedUser));
-      } catch (e) {
-        console.error("Failed to parse saved user", e);
+        const data = await refreshTokens();
+        if (data?.user) {
+          setUser(data.user);
+          localStorage.setItem("user", JSON.stringify(data.user)); // Still store user profile for speed, but NOT tokens
+        } else {
+          // If no session, check if we had a user before just to clear it
+          localStorage.removeItem("user");
+        }
+      } catch (err) {
+        console.error("Auth initialization failed", err);
         localStorage.removeItem("user");
-        clearTokens();
+      } finally {
+        setLoading(false);
       }
-    }
-    setLoading(false);
+    };
+
+    initializeAuth();
   }, []);
 
   const login = async (payload) => {

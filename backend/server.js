@@ -1,6 +1,7 @@
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 import { createServer } from "http";
 import { Server } from "socket.io";
@@ -55,6 +56,7 @@ io.on("connection", (socket) => {
 // Middleware (Gatekeepers)
 app.use(cors(corsOptions));
 app.use(express.json()); // Allows server to understand JSON data sent by frontend
+app.use(cookieParser()); // Allows server to read cookies from requests
 
 import path from "path";
 import { fileURLToPath } from "url";

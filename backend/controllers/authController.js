@@ -34,7 +34,19 @@ export const login = async (req, res) => {
     const io = req.app.get("io");
     const data = await authService.loginUser({ email, password }, io);
 
-    return res.json(data);
+    // [BEST PRACTICE] Set Refresh Token in HTTP-only Cookie
+    res.cookie("refreshToken", data.refreshToken, {
+      httpOnly: true, // Prevents JavaScript from reading the cookie (protects from XSS)
+      secure: process.env.NODE_ENV === "production", // Only send over HTTPS in production
+      sameSite: "strict", // Protects against CSRF
+      maxAge: 14 * 24 * 60 * 60 * 1000, // 14 days
+    });
+
+    // Return the user and access token in JSON
+    return res.json({
+      user: data.user,
+      accessToken: data.accessToken,
+    });
   } catch (error) {
     const status = error.message === "Invalid credentials" ? 401 : 500;
     return res.status(status).json({ message: error.message || "Login failed" });
@@ -52,13 +64,27 @@ export const getOnlineUsers = async (req, res) => {
 
 export const refresh = async (req, res) => {
   try {
-    const { refreshToken } = req.body;
+    // [BEST PRACTICE] Read Refresh Token from Cookies instead of Body
+    const refreshToken = req.cookies.refreshToken;
+    
     if (!refreshToken) {
-      return res.status(400).json({ message: "Missing refresh token" });
+      return res.status(401).json({ message: "Missing refresh token" });
     }
 
     const data = await authService.refreshUserToken(refreshToken);
-    return res.json(data);
+
+    // Set the NEW refresh token in cookie (Rotation)
+    res.cookie("refreshToken", data.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 14 * 24 * 60 * 60 * 1000,
+    });
+
+    return res.json({
+      user: data.user,
+      accessToken: data.accessToken,
+    });
   } catch (error) {
     return res.status(401).json({ message: error.message || "Invalid refresh token" });
   }
@@ -66,15 +92,21 @@ export const refresh = async (req, res) => {
 
 export const logout = async (req, res) => {
   try {
-    const { refreshToken } = req.body;
-    if (!refreshToken) {
-      return res.status(400).json({ message: "Missing refresh token" });
+    const refreshToken = req.cookies.refreshToken;
+    
+    const io = req.app.get("io");
+    if (refreshToken) {
+      await authService.logoutUser(refreshToken, io);
     }
 
-    const io = req.app.get("io");
-    await authService.logoutUser(refreshToken, io);
+    // [BEST PRACTICE] Clear the cookie
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+    });
 
-    return res.json({ message: "Logged out" });
+    return res.json({ message: "Logged out successfully" });
   } catch (error) {
     return res.status(500).json({ message: "Logout failed" });
   }

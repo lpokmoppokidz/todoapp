@@ -8,39 +8,36 @@ import axios from "axios";
 // We check if there's an environment variable (for production), otherwise use localhost:5009
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5009";
 
-// Helper functions to manage Tokens (your "VIP badge" for the app)
-const getTokens = () => ({
-  accessToken: localStorage.getItem("accessToken"),
-  refreshToken: localStorage.getItem("refreshToken"),
-});
+// [BEST PRACTICE] Access Token is stored ONLY in memory.
+// It is lost on page refresh, which is why we need the "Silent Refresh" flow.
+let _accessToken = null;
 
-const setTokens = (tokens) => {
-  if (tokens?.accessToken)
-    localStorage.setItem("accessToken", tokens.accessToken);
-  if (tokens?.refreshToken)
-    localStorage.setItem("refreshToken", tokens.refreshToken);
+export const setAccessToken = (token) => {
+  _accessToken = token;
 };
 
+export const getAccessToken = () => _accessToken;
+
 export const clearTokens = () => {
-  localStorage.removeItem("accessToken");
-  localStorage.removeItem("refreshToken");
+  _accessToken = null;
+  // Note: refreshToken is in a cookie, we can't clear it from JS,
+  // but we call the logout API to tell the backend to clear it.
 };
 
 // 2. Create the "Agent" (axios instance)
 // This 'api' object will handle all our requests automatically
 const api = axios.create({
   baseURL: API_BASE,
-  withCredentials: true, // Allows sending cookies if needed
+  withCredentials: true, // MANDATORY: Allows sending/receiving cookies
 });
 
 // [BEGINNER NOTE] "Interceptors": The Middleman
 // Before any request leaves the browser, this code runs.
 // It automatically attaches your "Access Token" to the request so the Backend knows who you are.
 api.interceptors.request.use((config) => {
-  const { accessToken } = getTokens();
-  if (accessToken) {
+  if (_accessToken) {
     // "Bearer" is a standard authentication type
-    config.headers.Authorization = `Bearer ${accessToken}`;
+    config.headers.Authorization = `Bearer ${_accessToken}`;
   }
   return config;
 });
@@ -73,7 +70,7 @@ api.interceptors.response.use(
     }
 
     // [BEGINNER NOTE] Automatic Token Refresh
-    // If Backend says "401 Unauthorized" (Token Expired)...
+    // If Backend says "401 Unauthorized" (Token Expired or Missing)...
     if (error.response?.status === 401 && !original._retry) {
       if (isRefreshing) {
         // If already refreshing, wait for it to finish
@@ -89,19 +86,21 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        // Ask Backend for a new Access Token using our Refresh Token
-        const refreshed = await refreshTokens();
-        if (!refreshed) {
-          // If refresh failed (e.g., Refresh Token also expired), logout user
+        // Ask Backend for a new Access Token using our Refresh Token (which is in a Cookie!)
+        const data = await refreshTokens();
+        if (!data || !data.accessToken) {
+          // If refresh failed (e.g., Cookie expired), logout user
           clearTokens();
           processQueue(new Error("Session expired"));
           return Promise.reject(error);
         }
 
-        const { accessToken } = getTokens();
+        const newAccessToken = data.accessToken;
+        setAccessToken(newAccessToken);
+
         // Retry all queued requests with the new token
-        processQueue(null, accessToken);
-        original.headers.Authorization = `Bearer ${accessToken}`;
+        processQueue(null, newAccessToken);
+        original.headers.Authorization = `Bearer ${newAccessToken}`;
         return api(original);
       } catch (refreshError) {
         clearTokens();
@@ -118,19 +117,17 @@ api.interceptors.response.use(
 
 // Function to refresh tokens explicitly
 export const refreshTokens = async () => {
-  const { refreshToken } = getTokens();
-  if (!refreshToken) return false;
-
   try {
     const { data } = await axios.post(
       `${API_BASE}/api/auth/refresh`,
-      { refreshToken },
+      {}, // No body needed! Refresh token is in the cookie.
       { withCredentials: true },
     );
-    setTokens(data);
-    return true;
-  } catch {
-    return false;
+    setAccessToken(data.accessToken);
+    return data;
+  } catch (err) {
+    console.error("Refresh token failed:", err.response?.data?.message);
+    return null;
   }
 };
 
@@ -145,11 +142,12 @@ const handleError = (error) => {
 
 // --- API FUNCTIONS (The "Menu" of requests) ---
 
-// LOGIN: Sends email/password -> Gets Tokens
+// LOGIN: Sends email/password -> Gets User + Access Token
 export const login = async (payload) => {
   try {
     const data = await api.post("/api/auth/login", payload).then(unwrap);
-    setTokens(data);
+    // data contains { user, accessToken }
+    setAccessToken(data.accessToken);
     return data;
   } catch (error) {
     return handleError(error);
@@ -166,14 +164,13 @@ export const register = async (payload) => {
 };
 
 export const logout = async () => {
-  const { refreshToken } = getTokens();
   try {
-    if (refreshToken) {
-      await api.post("/api/auth/logout", { refreshToken });
-    }
+    await api.post("/api/auth/logout");
     clearTokens();
     return { success: true };
   } catch (error) {
+    // Even if server call fails, clear local state
+    clearTokens();
     return handleError(error);
   }
 };
