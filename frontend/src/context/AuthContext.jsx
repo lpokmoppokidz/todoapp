@@ -20,13 +20,16 @@ export const AuthProvider = ({ children }) => {
     // Instead of reading tokens from localStorage (unsafe),
     // we ask the backend: "Do I have a valid session cookie?"
     const initializeAuth = async () => {
+      // [CLEANUP] Remove old insecure tokens if they exist from previous versions
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
+
       try {
         const data = await refreshTokens();
         if (data?.user) {
           setUser(data.user);
-          localStorage.setItem("user", JSON.stringify(data.user)); // Still store user profile for speed, but NOT tokens
+          localStorage.setItem("user", JSON.stringify(data.user));
         } else {
-          // If no session, check if we had a user before just to clear it
           localStorage.removeItem("user");
         }
       } catch (err) {
