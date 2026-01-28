@@ -1,5 +1,5 @@
 import express from "express";
-import { requireAuth } from "../middleware/auth.js";
+import { requireAuth } from "../middlewares/auth.js";
 import { createTask, getTasks, updateStatus, saveTask, unsaveTask, getUserFavorites } from "../controllers/taskController.js";
 
 const router = express.Router();
