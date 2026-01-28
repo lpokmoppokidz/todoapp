@@ -31,7 +31,7 @@ app.get("/health", (req, res) => {
 });
 
 // Serve Frontend (Production)
-const distPath = path.join(__dirname, "../../../frontend/dist");
+const distPath = path.join(__dirname, "../../frontend/dist");
 if (fs.existsSync(distPath)) {
   app.use(express.static(distPath));
   app.get("*", (req, res) => {
